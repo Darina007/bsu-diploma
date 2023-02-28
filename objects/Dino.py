@@ -66,7 +66,6 @@ class Dino:
         else:
             self.state = DinoState.JUMP
             self.image = pygame.image.load(f"sprites/dino/{self.color}_jump.png")
-            # self.image = self.sprites["jump"][0]
 
     def draw(self, scr, fnt=None):
         scr.blit(self.image, (self.hitbox.x, self.hitbox.y))

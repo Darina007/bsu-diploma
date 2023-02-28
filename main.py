@@ -1,12 +1,13 @@
-import pygame
-import random
-import sys
 import math
+import random
+
 import neat
+import pygame
+
 import configuration
-from Dino import DinoState
-from Dino import Dino
-from Cactus import Cactus
+from utils import draw_utils, file_utils, game_utils, vizuai
+from objects.Cactus import Cactus
+from objects.Dino import Dino
 
 game_speed = configuration.game_speed
 score = configuration.score
@@ -15,32 +16,12 @@ score_speedup = configuration.score_speedup
 enemies = []
 dinosaurs = []
 
-def calc_dist(a, b):
-    dx = a[0] - b[0]
-    dy = a[1] - b[1]
-    return math.sqrt(dx ** 2 + dy ** 2)
 
-
-def run_game(genomes, config):
-    global game_speed, score, enemies, dinosaurs, generation, score_speedup
-
-    generation += 1
-    game_speed = 8.0
-    score = 0
-    score_speedup = 100
-    enemies = [Cactus(configuration.width + 300 / random.uniform(0.8, 3), configuration.height - 85),
-               Cactus(configuration.width * 2 + 200 / random.uniform(0.8, 3), configuration.height - 85),
-               Cactus(configuration.width * 3 + 400 / random.uniform(0.8, 3), configuration.height - 85)]
-    dinosaurs = []
-    nets = []
-    skins_copy = configuration.skins[:]
-    names_copy = configuration.names[:]
-
-    # init genomes
+def init_genomes(genomes, nets, skins_copy, names_copy):
     for i, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
-        g.fitness = 0  # every genome is not successful at the start
+        g.fitness = 0
 
         skin = "default"
         if len(skins_copy):
@@ -52,7 +33,29 @@ def run_game(genomes, config):
 
         dinosaurs.append(Dino(30, configuration.height - 170, skin, name))
 
-    # init
+
+def save_statistic(path):
+    file_utils.mkdir_if_not_exist(path)
+    stats.save_genome_fitness(filename=path + '/fitness_history.csv')
+    stats.save_species_count(filename=path + '/speciation.csv')
+    stats.save_species_fitness(filename=path + '/species_fitness.csv')
+
+
+def run_game(genomes, config):
+    global game_speed, score, enemies, dinosaurs, generation, score_speedup
+    generation += 1
+    game_speed = configuration.game_speed * generation
+    score = 0
+    score_speedup = 100
+    enemies = [Cactus(configuration.width + 300 / random.uniform(0.8, 3), configuration.height - 85),
+               Cactus(configuration.width * 2 + 200 / random.uniform(0.8, 3), configuration.height - 85),
+               Cactus(configuration.width * 3 + 400 / random.uniform(0.8, 3), configuration.height - 85)]
+    nets = []
+    skins_copy = configuration.skins[:]
+    names_copy = configuration.names[:]
+
+    init_genomes(genomes, nets, skins_copy, names_copy)
+
     pygame.init()
     screen = pygame.display.set_mode((configuration.width, configuration.height))
     clock = pygame.time.Clock()
@@ -65,35 +68,32 @@ def run_game(genomes, config):
     dname_font = pygame.font.SysFont("Roboto Condensed", 30)
     heading_font = pygame.font.SysFont("Roboto Condensed", 70)
 
-    # dinosaurs = [Dino(30, height-170, "subaru", "Howdy")]
-
-    # the loop
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+        while generation >= 10 or score >= 10000:
+            save_statistic('statistic')
+            screen.fill(configuration.bg)
+            vizuai.plot_stats(stats, True, True)
+            vizuai.plot_species(stats, False, 'graphics/speciation.png')
+            vizuai.draw_net(config, stats.best_genome(), filename='graphics/best_genome', show_disabled=True)
+            fitness_img = pygame.image.load('./graphics/avg_fitness.png')
+            screen.blit(fitness_img, (0, 0))
+            screen.blit(pygame.image.load('./graphics/speciation.png'), (fitness_img.get_width() + 10, 0))
+            screen.blit(pygame.image.load('./graphics/best_genome.png'), (0, fitness_img.get_height() + 10))
+            pygame.display.update()
+            game_utils.end_event()
 
-        # display bg & road
+        game_utils.end_event()
+
+        if len(dinosaurs) == 0:
+            break
+
         screen.fill(configuration.bg)
-        for road_chunk in road_chunks:
-            if road_chunk[1][0] <= -2400:
-                road_chunk[1][0] = road_chunks[len(road_chunks) - 1][1][0] + 2400
-
-                road_chunks[0], road_chunks[1] = road_chunks[1], road_chunks[0]
-                break
-
-            road_chunk[1][0] -= game_speed
-            screen.blit(road_chunk[0], (road_chunk[1][0], road_chunk[1][1]))
+        draw_utils.proceed_road(screen, road_chunks, game_speed)
 
         # draw dino
         for dino in dinosaurs:
             dino.update()
             dino.draw(screen, font)
-
-        # quit if there is no dinos left
-        if len(dinosaurs) == 0:
-            break
 
         # generate enemies
         if len(enemies) < 3:
@@ -110,83 +110,41 @@ def run_game(genomes, config):
                 rem_list.append(i)
                 continue
 
-            for j, dinosaur in enumerate(dinosaurs):
-                if dinosaur.hitbox.colliderect(enemy.hitbox):
-                    genomes[j][1].fitness -= 10  # lower fitness (failed)
-                    dinosaurs.pop(j)
+            game_utils.delete_dinosaur(dinosaurs, enemy, genomes, nets)
 
-                    genomes.pop(j)
-                    nets.pop(j)
+        game_utils.delete_cactus(dinosaurs, enemies, rem_list, genomes)
 
-        for i in rem_list:
-            enemies.pop(i)
+        game_utils.update_dino_fitness(nets, dinosaurs, enemies, game_speed, genomes)
 
-            for j, dinosaur in enumerate(dinosaurs):
-                genomes[j][1].fitness += 5  # raise fitness (+5 for every enemy)
-
-
-        # controls
-        for i, dinosaur in enumerate(dinosaurs):
-            output = nets[i].activate((dinosaur.hitbox.y,
-                                       calc_dist((dinosaur.hitbox.x, dinosaur.hitbox.y), enemies[0].hitbox.midtop),
-                                       enemies[0].hitbox.width,
-                                       game_speed))
-
-            if output[0] > 0.5 and dinosaur.state is not DinoState.JUMP:
-                dinosaur.jump()
-                genomes[i][1].fitness -= 1  # every jump lowers the fitness (assuming it's false jump)
-
-        # read user input (jump test)
-        # user_input = pygame.key.get_pressed()
-        # if user_input[pygame.K_SPACE]:
-        #     for dino in dinosaurs:
-        #         if not dino.state == DinoState.JUMP:
-        #             dino.jump()
-
-        # score & game speed
         score += 0.5 * (game_speed / 4)
         if score > score_speedup:
-            score_speedup += 100 * (game_speed / 2)
-            game_speed += 1
-            print(f"Game speed increased - {game_speed}")
+            game_utils.increase_game_speed(score_speedup, game_speed)
 
-        score_label = score_font.render("Очки: " + str(math.floor(score)), True, (50, 50, 50))
-        score_label_rect = score_label.get_rect()
-        score_label_rect.center = (configuration.width - 100, 50)
-        screen.blit(score_label, score_label_rect)
+        draw_utils.display_info_items(screen, score_font, "Score: " + str(math.floor(score)), (50, 50, 50),
+                                      (configuration.width - 100, 50))
 
-        # display dinosaurs names
         for i, dinosaur in enumerate(dinosaurs):
-            dname_label = dname_font.render(dinosaur.name, True, (170, 238, 187))
-            dname_label_rect = dname_label.get_rect()
-            dname_label_rect.center = (configuration.width - 100, 100 + (i * 25))
-            screen.blit(dname_label, dname_label_rect)
+            draw_utils.display_info_items(screen, dname_font, dinosaur.name, (170, 238, 187),
+                                          (configuration.width - 100, 100 + (i * 25)))
 
-        # display generation
-        label = heading_font.render("Поколение: " + str(generation), True, (0, 72, 186))
-        label_rect = label.get_rect()
-        label_rect.center = (configuration.width / 2, 150)
-        screen.blit(label, label_rect)
+        draw_utils.display_info_items(screen, heading_font, "Generation: " + str(generation), (0, 72, 186),
+                                      (configuration.width / 2, 150))
 
-        # display game speed
-        score_label = score_font.render("Скорость: " + str(game_speed / 8) + "x", True, (50, 50, 50))
-        score_label_rect = score_label.get_rect()
-        score_label_rect.center = (150, 50)
-        screen.blit(score_label, score_label_rect)
+        draw_utils.display_info_items(screen, score_font, "Speed: " + str(game_speed / 8) + "x", (50, 50, 50),
+                                      (150, 50))
 
-        # flip & tick
         pygame.display.flip()
-        clock.tick(60)  # fixed 60 fps
+        clock.tick(60)
 
 
 if __name__ == "__main__":
-    # setup config
     config_path = "./config-feedforward.txt"
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
                                 neat.DefaultStagnation, config_path)
 
-    # init NEAT
     p = neat.Population(config)
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
 
-    # run NEAT
     p.run(run_game, 1000)
