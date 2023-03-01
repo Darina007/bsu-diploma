@@ -102,7 +102,7 @@ def run_game(genomes, config):
 
         score += 0.5 * (game_speed / 4)
         if score > score_speedup:
-            game_utils.increase_game_speed(score_speedup, game_speed)
+            score_speedup, game_speed = game_utils.increase_game_speed(score_speedup, game_speed)
 
         draw_utils.display_info_items(screen, score_font, "Score: " + str(math.floor(score)), (50, 50, 50),
                                       (configuration.width - 100, 50))

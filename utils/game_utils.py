@@ -9,6 +9,7 @@ from utils import draw_utils
 def increase_game_speed(score_speedup, game_speed):
     score_speedup += 100 * (game_speed / 2)
     game_speed += 1
+    return score_speedup, game_speed
 
 def update_dino_fitness(nets, dinosaurs, enemies, game_speed, genomes):
     for i, dinosaur in enumerate(dinosaurs):
