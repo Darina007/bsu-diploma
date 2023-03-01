@@ -5,9 +5,9 @@ import neat
 import pygame
 
 import configuration
-from utils import draw_utils, file_utils, game_utils, statistic_visualisation_util
 from objects.Cactus import Cactus
 from objects.Dino import Dino
+from utils import draw_utils, file_utils, game_utils, statistic_visualisation_util
 
 game_speed = configuration.game_speed
 score = configuration.score
@@ -22,17 +22,17 @@ road_chunks = [
 
 
 def init_genomes(genomes, nets):
+    skins_copy = configuration.skins[:]
+    names_copy = configuration.names[:]
     for i, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 0
 
-        skins_copy = configuration.skins[:]
         skin = "default"
         if len(skins_copy):
             skin = skins_copy.pop()
 
-        names_copy = configuration.names[:]
         name = "Дино"
         if len(names_copy):
             name = names_copy.pop()
@@ -75,11 +75,11 @@ def run_game(genomes, config):
             screen.fill(configuration.bg)
             statistic_visualisation_util.plot_stats(stats, True, True)
             statistic_visualisation_util.plot_species(stats, False, 'graphics/speciation.png')
-            # statistic_visualisation_util.draw_net(config, stats.best_genome(), filename='graphics/best_genome')
+            statistic_visualisation_util.draw_net(config, stats.best_genome(), filename='graphics/best_genome')
             fitness_img = pygame.image.load('./graphics/avg_fitness.png')
             screen.blit(fitness_img, (0, 0))
             screen.blit(pygame.image.load('./graphics/speciation.png'), (fitness_img.get_width() + 10, 0))
-            # screen.blit(pygame.image.load('./graphics/best_genome.png'), (0, fitness_img.get_height() + 10))
+            screen.blit(pygame.image.load('./graphics/best_genome.png'), (0, fitness_img.get_height() + 10))
             pygame.display.update()
             game_utils.end_event()
 
