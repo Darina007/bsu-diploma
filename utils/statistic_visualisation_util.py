@@ -4,7 +4,9 @@ import graphviz
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
 os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz/bin'
+
 
 def save2file(plot, filename):
     path = file_utils.get_filepath(filename)
@@ -14,7 +16,6 @@ def save2file(plot, filename):
 
 
 def plot_stats(statistics, ylog=False, view=False, filename='graphics/avg_fitness.png'):
-    """ Plots the population's average and best fitness. """
     if plt is None:
         warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
         return
@@ -44,57 +45,7 @@ def plot_stats(statistics, ylog=False, view=False, filename='graphics/avg_fitnes
     plt.close()
 
 
-def plot_spikes(spikes, view=False, filename=None, title=None):
-    """ Plots the trains for a single spiking neuron. """
-    t_values = [t for t, I, v, u, f in spikes]
-    v_values = [v for t, I, v, u, f in spikes]
-    u_values = [u for t, I, v, u, f in spikes]
-    I_values = [I for t, I, v, u, f in spikes]
-    f_values = [f for t, I, v, u, f in spikes]
-
-    fig = plt.figure()
-    plt.subplot(4, 1, 1)
-    plt.ylabel("Potential (mv)")
-    plt.xlabel("Time (in ms)")
-    plt.grid()
-    plt.plot(t_values, v_values, "g-")
-
-    if title is None:
-        plt.title("Izhikevich's spiking neuron model")
-    else:
-        plt.title("Izhikevich's spiking neuron model ({0!s})".format(title))
-
-    plt.subplot(4, 1, 2)
-    plt.ylabel("Fired")
-    plt.xlabel("Time (in ms)")
-    plt.grid()
-    plt.plot(t_values, f_values, "r-")
-
-    plt.subplot(4, 1, 3)
-    plt.ylabel("Recovery (u)")
-    plt.xlabel("Time (in ms)")
-    plt.grid()
-    plt.plot(t_values, u_values, "r-")
-
-    plt.subplot(4, 1, 4)
-    plt.ylabel("Current (I)")
-    plt.xlabel("Time (in ms)")
-    plt.grid()
-    plt.plot(t_values, I_values, "r-o")
-
-    if filename is not None:
-        save2file(plt, filename)
-
-    if view:
-        plt.show()
-        plt.close()
-        fig = None
-
-    return fig
-
-
 def plot_species(statistics, view=False, filename='graphics/speciation.png'):
-    """ Visualizes speciation throughout evolution. """
     if plt is None:
         warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
         return
@@ -118,17 +69,11 @@ def plot_species(statistics, view=False, filename='graphics/speciation.png'):
     plt.close()
 
 
-def draw_net(config, genome, view=False, filename=None, node_names=None, show_disabled=True, prune_unused=False,
+def draw_net(config, genome, view=False, filename=None, node_names=None, show_disabled=True,
              node_colors=None, fmt='png'):
-    """ Receives a genome and draws a neural network with arbitrary topology. """
-    # Attributes for network nodes.
     if graphviz is None:
         warnings.warn("This display is not available due to a missing optional dependency (graphviz)")
         return
-
-    # If requested, use a copy of the genome which omits all components that won't affect the output.
-    if prune_unused:
-        genome = genome.get_pruned_copy(config.genome_config)
 
     if node_names is None:
         node_names = {}

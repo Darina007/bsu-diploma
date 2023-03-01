@@ -1,3 +1,12 @@
+def display_cactus(enemy, screen):
+    enemy.update()
+    enemy.draw(screen)
+
+
+def display_dinos(dinosaurs, screen, font):
+    for dino in dinosaurs:
+        dino.update()
+        dino.draw(screen, font)
 
 
 def display_info_items(screen, item_font, text, coords, center_coords):
@@ -17,4 +26,3 @@ def proceed_road(screen, road_chunks, game_speed):
 
         road_chunk[1][0] -= game_speed
         screen.blit(road_chunk[0], (road_chunk[1][0], road_chunk[1][1]))
-

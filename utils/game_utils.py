@@ -3,6 +3,8 @@ import pygame
 import sys
 
 from objects.Dino import DinoState
+from utils import draw_utils
+
 
 def increase_game_speed(score_speedup, game_speed):
     score_speedup += 100 * (game_speed / 2)
@@ -39,7 +41,7 @@ def end_event():
 def delete_dinosaur(dinosaurs, enemy, genomes, nets):
     for j, dinosaur in enumerate(dinosaurs):
         if dinosaur.hitbox.colliderect(enemy.hitbox):
-            genomes[j][1].fitness -= 10  # lower fitness (failed)
+            genomes[j][1].fitness -= 10
             dinosaurs.pop(j)
             genomes.pop(j)
             nets.pop(j)
@@ -49,4 +51,16 @@ def delete_cactus(dinosaurs, enemies, rem_list, genomes):
     for i in rem_list:
         enemies.pop(i)
         for j, dinosaur in enumerate(dinosaurs):
-            genomes[j][1].fitness += 5  # raise fitness (+5 for every enemy)
+            genomes[j][1].fitness += 5
+
+def proceed_enemies(enemies, rem_list, dinosaurs, genomes, nets, screen):
+    for i, enemy in enumerate(enemies):
+        draw_utils.display_cactus(enemy, screen)
+
+        if not enemy.is_active:
+            rem_list.append(i)
+            continue
+
+        delete_dinosaur(dinosaurs, enemy, genomes, nets)
+
+    delete_cactus(dinosaurs, enemies, rem_list, genomes)
