@@ -132,3 +132,10 @@ def draw_net(config, genome, view=False, filename=None, node_names=None, show_di
     dot.render(filename, view=view)
 
     return dot
+
+
+def save_best_genomes_neurons(config, stats):
+    iterator = 0
+    for i in stats.best_genomes(len(stats.most_fit_genomes)):
+        draw_net(config, i, filename='graphics/best_genome_' + str(iterator))
+        iterator += 1

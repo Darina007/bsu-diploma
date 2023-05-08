@@ -70,16 +70,15 @@ def run_game(genomes, config):
     heading_font = pygame.font.SysFont("Roboto Condensed", 70)
 
     while True:
-        while generation >= 10 or score >= 10000:
+        while generation >= 20 or score >= 10000:
             save_statistic('statistic')
             screen.fill(configuration.bg)
             statistic_visualisation_util.plot_stats(stats, True, True)
             statistic_visualisation_util.plot_species(stats, False, 'graphics/speciation.png')
-            statistic_visualisation_util.draw_net(config, stats.best_genome(), filename='graphics/best_genome')
+            statistic_visualisation_util.save_best_genomes_neurons(config, stats)
             fitness_img = pygame.image.load('./graphics/avg_fitness.png')
             screen.blit(fitness_img, (0, 0))
             screen.blit(pygame.image.load('./graphics/speciation.png'), (fitness_img.get_width() + 10, 0))
-            screen.blit(pygame.image.load('./graphics/best_genome.png'), (0, fitness_img.get_height() + 10))
             pygame.display.update()
             game_utils.end_event()
 
